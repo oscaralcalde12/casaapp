@@ -1,0 +1,8 @@
+node_modules/
+.vercel/
+.env
+.env.local
+.neon
+drizzle/meta/_journal.json.tmp
+npm-debug.log*
+.neon

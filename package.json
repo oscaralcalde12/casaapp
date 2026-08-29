@@ -1,0 +1,19 @@
+{
+  "name": "plano-de-obra",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npx vercel dev",
+    "build": "node scripts/validate.mjs",
+    "db:migrate": "node scripts/migrate.mjs"
+  },
+  "dependencies": {
+    "@neon/config": "^1.1.0",
+    "@neondatabase/serverless": "^1.0.1",
+    "drizzle-orm": "^0.45.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
