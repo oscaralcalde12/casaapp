@@ -243,6 +243,8 @@
   .add-mat { margin-top: 8px; border: 1px dashed var(--line-strong); background: none; color: var(--accent); font: 600 .82rem "Public Sans", sans-serif; padding: 8px; width: 100%; border-radius: 9px; cursor: pointer; transition: border-color .12s, background .12s; }
   .add-mat:hover { border-color: var(--accent); background: var(--accent-soft); }
   .mat-hint { margin: 8px 0 0; font-size: .72rem; color: var(--faint); }
+  .estimate-total { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--accent-soft); color: var(--accent-ink); font-size: .78rem; font-weight: 700; }
+  .estimate-total strong { font: 700 .9rem "IBM Plex Mono", monospace; }
   .checklist-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
   .checklist-head label { margin: 0; }
   .checklist-progress { font: 600 .75rem "IBM Plex Mono", monospace; color: var(--accent-ink); }
@@ -725,12 +727,20 @@
       <div class="field">
         <div class="slider-head">
           <label style="margin:0">Materiales</label>
-          <span class="v" id="m-total">Costo total: $0</span>
+          <span class="v" id="m-mat-total">Subtotal: $0</span>
         </div>
         <div class="mat-list" id="m-mat-list"></div>
         <button type="button" class="add-mat" id="m-add-mat">+ Agregar material</button>
-        <p class="mat-hint">El costo estimado de la tarea es la suma de sus materiales.</p>
       </div>
+      <div class="field">
+        <div class="slider-head">
+          <label style="margin:0">Herramientas</label>
+          <span class="v" id="m-tool-total">Subtotal: $0</span>
+        </div>
+        <div class="mat-list" id="m-tool-list"></div>
+        <button type="button" class="add-mat" id="m-add-tool">+ Agregar herramienta</button>
+      </div>
+      <div class="estimate-total"><span>Costo estimado total</span><strong id="m-total">$0</strong></div>
       <div class="row2">
         <div class="field">
           <label>Estado actual</label>
@@ -933,7 +943,9 @@
   var STATUS_LABEL = { pendiente: "Pendiente", curso: "En curso", hecho: "Hecho" };
   function isDone(t) { return t.status === "hecho"; }
   function matSum(arr) { return (arr || []).reduce(function (s, m) { return s + (Number(m.cost) || 0); }, 0); }
-  function costFromMats(arr) { return (arr && arr.length) ? matSum(arr) : null; }
+  function costFromItems(materials, tools) {
+    return ((materials && materials.length) || (tools && tools.length)) ? matSum(materials) + matSum(tools) : null;
+  }
   function normalize(list) {
     (list || []).forEach(function (t) {
       if (!t.status) t.status = (t.done ? "hecho" : "pendiente");
@@ -941,7 +953,9 @@
       else if (!Array.isArray(t.materials)) t.materials = [];
       if (!t.materials.length && t.cost != null && t.cost !== "" && Number(t.cost) > 0) t.materials = [{ name: "Costo estimado", cost: Number(t.cost) }];
       t.materials = t.materials.map(function (m) { return { name: String(m.name || ""), cost: Number(m.cost) || 0 }; });
-      t.cost = costFromMats(t.materials);
+      if (!Array.isArray(t.tools)) t.tools = [];
+      t.tools = t.tools.map(function (tool) { return { name: String(tool.name || ""), cost: Number(tool.cost) || 0 }; });
+      t.cost = costFromItems(t.materials, t.tools);
       if (t.comments == null) t.comments = "";
       if (!Array.isArray(t.checklist)) t.checklist = [];
       t.checklist = t.checklist.map(function (item) {
@@ -955,6 +969,7 @@
     return list;
   }
   var ICON_BOX = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5V8Z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg>';
+  var ICON_TOOL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5-5L12 3.6 9.6 6 7.3 3.7a4 4 0 0 0 5 5l-7.8 7.8a2.1 2.1 0 0 0 3 3l7.8-7.8a4 4 0 0 0 5-5L18 9l-2.4-2.4 2.3-2.3a4 4 0 0 0-3.2 2Z"/></svg>';
   var ICON_NOTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg>';
   var ICON_CHECKLIST = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>';
   function preview(s) { s = String(s).replace(/\s+/g, " ").trim(); return esc(s.length > 26 ? s.slice(0, 26) + "…" : s); }
@@ -1052,10 +1067,15 @@
   function effLabel(v) { v = +v; return v === 0 ? "Sin estimar" : v + " · " + EFF_WORD[v]; }
   mEff.addEventListener("input", function () { mEffVal.textContent = effLabel(mEff.value); });
 
-  // editor de materiales (cada material con su costo; el total es el costo de la tarea)
-  var matDraft = [];
-  var matList = $("#m-mat-list"), matTotal = $("#m-total");
-  function updateMatTotal() { matTotal.textContent = "Costo total: " + money(matSum(matDraft)); }
+  // editores de materiales y herramientas
+  var matDraft = [], toolDraft = [];
+  var matList = $("#m-mat-list"), toolList = $("#m-tool-list");
+  var matTotal = $("#m-mat-total"), toolTotal = $("#m-tool-total"), estimateTotal = $("#m-total");
+  function updateCostTotals() {
+    matTotal.textContent = "Subtotal: " + money(matSum(matDraft));
+    toolTotal.textContent = "Subtotal: " + money(matSum(toolDraft));
+    estimateTotal.textContent = money(matSum(matDraft) + matSum(toolDraft));
+  }
   function renderMats() {
     matList.innerHTML = matDraft.map(function (m, i) {
       return '<div class="mat-row" data-i="' + i + '">' +
@@ -1064,13 +1084,13 @@
         '<button type="button" class="mat-del" aria-label="Quitar material">×</button>' +
       '</div>';
     }).join("");
-    updateMatTotal();
+    updateCostTotals();
   }
   matList.addEventListener("input", function (e) {
     var row = e.target.closest(".mat-row"); if (!row) return;
     var i = +row.getAttribute("data-i");
     if (e.target.classList.contains("mat-name")) matDraft[i].name = e.target.value;
-    else if (e.target.classList.contains("mat-cost")) { matDraft[i].cost = e.target.value === "" ? 0 : (parseFloat(e.target.value) || 0); updateMatTotal(); }
+    else if (e.target.classList.contains("mat-cost")) { matDraft[i].cost = e.target.value === "" ? 0 : (parseFloat(e.target.value) || 0); updateCostTotals(); }
   });
   matList.addEventListener("click", function (e) {
     if (!e.target.classList.contains("mat-del")) return;
@@ -1079,6 +1099,31 @@
   $("#m-add-mat").addEventListener("click", function () {
     matDraft.push({ name: "", cost: "" }); renderMats();
     setTimeout(function () { var inp = matList.querySelector(".mat-row:last-child .mat-name"); if (inp) inp.focus(); }, 10);
+  });
+
+  function renderTools() {
+    toolList.innerHTML = toolDraft.map(function (tool, i) {
+      return '<div class="mat-row" data-i="' + i + '">' +
+        '<input type="text" class="mat-name" placeholder="Herramienta" value="' + esc(tool.name || "") + '">' +
+        '<input type="number" class="mat-cost" placeholder="$" min="0" step="100" value="' + (tool.cost == null || tool.cost === "" ? "" : tool.cost) + '">' +
+        '<button type="button" class="mat-del" aria-label="Quitar herramienta">×</button>' +
+      '</div>';
+    }).join("");
+    updateCostTotals();
+  }
+  toolList.addEventListener("input", function (e) {
+    var row = e.target.closest(".mat-row"); if (!row) return;
+    var i = +row.getAttribute("data-i");
+    if (e.target.classList.contains("mat-name")) toolDraft[i].name = e.target.value;
+    else if (e.target.classList.contains("mat-cost")) { toolDraft[i].cost = e.target.value === "" ? 0 : (parseFloat(e.target.value) || 0); updateCostTotals(); }
+  });
+  toolList.addEventListener("click", function (e) {
+    if (!e.target.classList.contains("mat-del")) return;
+    var row = e.target.closest(".mat-row"); toolDraft.splice(+row.getAttribute("data-i"), 1); renderTools();
+  });
+  $("#m-add-tool").addEventListener("click", function () {
+    toolDraft.push({ name: "", cost: "" }); renderTools();
+    setTimeout(function () { var inp = toolList.querySelector(".mat-row:last-child .mat-name"); if (inp) inp.focus(); }, 10);
   });
 
   // editor de checklist
@@ -1175,7 +1220,9 @@
     $("#m-end").min = $("#m-start").value;
     mEff.value = t ? (t.eff || 0) : 0; mEffVal.textContent = effLabel(mEff.value);
     matDraft = (t && t.materials) ? t.materials.map(function (m) { return { name: m.name, cost: m.cost }; }) : [];
+    toolDraft = (t && t.tools) ? t.tools.map(function (tool) { return { name: tool.name, cost: tool.cost }; }) : [];
     renderMats();
+    renderTools();
     imgDraft = { actual: t ? (t.imgActual || "") : "", futuro: t ? (t.imgFuturo || "") : "" };
     imgBusy = { actual: false, futuro: false };
     renderImgbox("actual"); renderImgbox("futuro");
@@ -1209,15 +1256,18 @@
     }
     var materials = matDraft.map(function (m) { return { name: (m.name || "").trim(), cost: Number(m.cost) || 0 }; })
       .filter(function (m) { return m.name || m.cost; });
+    var tools = toolDraft.map(function (tool) { return { name: (tool.name || "").trim(), cost: Number(tool.cost) || 0 }; })
+      .filter(function (tool) { return tool.name || tool.cost; });
     var data = {
       name: name,
       sector: $("#m-sector").value.trim() || "General",
       exec: $("#m-exec").value.trim(),
       road: $("#m-road").value.trim() || "Sin asignar",
-      cost: costFromMats(materials),
+      cost: costFromItems(materials, tools),
       eff: parseInt(mEff.value, 10),
       prio: document.querySelector('input[name=mprio]:checked').value,
       materials: materials,
+      tools: tools,
       comments: $("#m-comments").value.trim(),
       checklist: checklistDraft.map(function (item) {
         return { id: item.id || newId(), text: (item.text || "").trim(), done: !!item.done };
@@ -1334,6 +1384,10 @@
     if (t.materials && t.materials.length) {
       var mt = t.materials.map(function (m) { return m.name + (m.cost ? ": " + money(m.cost) : ""); }).join(" · ");
       meta += '<span class="chip ic" title="' + esc(mt) + '">' + ICON_BOX + t.materials.length + (t.materials.length === 1 ? " material" : " materiales") + '</span>';
+    }
+    if (t.tools && t.tools.length) {
+      var toolTitle = t.tools.map(function (tool) { return tool.name + (tool.cost ? ": " + money(tool.cost) : ""); }).join(" · ");
+      meta += '<span class="chip ic" title="' + esc(toolTitle) + '">' + ICON_TOOL + t.tools.length + (t.tools.length === 1 ? " herramienta" : " herramientas") + '</span>';
     }
     if (t.comments) meta += '<span class="chip ic" title="' + esc(t.comments) + '">' + ICON_NOTE + preview(t.comments) + '</span>';
     if (t.checklist && t.checklist.length) {

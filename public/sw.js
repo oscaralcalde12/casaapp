@@ -1,4 +1,4 @@
-const CACHE_VERSION = "casa-plan-v1";
+const CACHE_VERSION = "casa-plan-v2";
 const APP_CACHE = `${CACHE_VERSION}-app`;
 const DATA_CACHE = `${CACHE_VERSION}-data`;
 const APP_SHELL = [
