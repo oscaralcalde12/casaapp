@@ -13,6 +13,7 @@ export const tasks = pgTable("tasks", {
   status: text("status").notNull().default("pendiente"),
   materials: jsonb("materials").notNull().default([]),
   comments: text("comments").notNull().default(""),
+  checklist: jsonb("checklist").notNull().default([]),
   imgActual: text("img_actual").notNull().default(""),
   imgFuturo: text("img_futuro").notNull().default(""),
   startDate: date("start_date"),
