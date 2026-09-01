@@ -6,6 +6,15 @@
 <base target="_top">
 <title>Plano de Obra</title>
 <meta name="description" content="Panel para organizar tareas, costos, materiales y avances de obra.">
+<meta name="theme-color" content="#185B8F">
+<meta name="color-scheme" content="light dark">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Casa Plan">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Public+Sans:ital,wght@0,400..700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
@@ -81,6 +90,15 @@
   .theme-btn { width: 40px; height: 40px; flex: none; border-radius: 10px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--muted); cursor: pointer; display: grid; place-items: center; transition: color .15s, border-color .15s, background .15s; }
   .theme-btn:hover { color: var(--accent); border-color: var(--accent); }
   .theme-btn svg { width: 19px; height: 19px; }
+  .install-btn {
+    min-height: 40px; padding: 8px 12px; border: 1px solid var(--line-strong); border-radius: 10px;
+    background: var(--surface); color: var(--accent-ink); font: 700 .78rem "Public Sans", sans-serif;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 7px; white-space: nowrap;
+    transition: color .15s, border-color .15s, background .15s, transform .05s;
+  }
+  .install-btn:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+  .install-btn:active { transform: translateY(1px); }
+  .install-btn svg { width: 17px; height: 17px; }
   .kpis { display: flex; gap: 24px; }
   .kpi { text-align: right; }
   .kpi .n { font-family: "Bricolage Grotesque", sans-serif; font-weight: 700; font-size: 1.45rem; line-height: 1; letter-spacing: -.02em; }
@@ -466,7 +484,8 @@
     .titles p { display: none; }
     .head-right { flex-wrap: wrap; }
     .sync { order: 2; }
-    .theme-btn { margin-left: auto; }
+    .install-btn { margin-left: auto; }
+    .theme-btn { margin-left: 0; }
     .kpis { order: 3; width: 100%; overflow-x: auto; }
     .kpi { min-width: 86px; padding: 7px 11px; }
     .progress-kpi { min-width: 108px; }
@@ -515,6 +534,10 @@
     </div>
     <div class="head-right">
       <span id="sync" class="sync"></span>
+      <button class="install-btn" id="install-btn" type="button" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 19h14"/></svg>
+        <span>Instalar app</span>
+      </button>
       <button class="theme-btn" id="theme-btn" type="button" aria-label="Cambiar tema" title="Tema"></button>
       <div class="kpis">
         <div class="kpi"><div class="n mono" id="kpi-count">0</div><div class="l">Tareas</div></div>
@@ -797,6 +820,46 @@
     applyTheme();
   });
   applyTheme();
+
+  // ---------- instalación PWA ----------
+  var installPrompt = null;
+  var installBtn = $("#install-btn");
+  var isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  var isStandalone = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+
+  window.addEventListener("beforeinstallprompt", function (event) {
+    event.preventDefault();
+    installPrompt = event;
+    if (!isStandalone) installBtn.hidden = false;
+  });
+
+  window.addEventListener("appinstalled", function () {
+    installPrompt = null;
+    installBtn.hidden = true;
+  });
+
+  if (isIos && !isStandalone) installBtn.hidden = false;
+
+  installBtn.addEventListener("click", async function () {
+    if (installPrompt) {
+      installPrompt.prompt();
+      await installPrompt.userChoice;
+      installPrompt = null;
+      installBtn.hidden = true;
+      return;
+    }
+    if (isIos) {
+      window.alert("En Safari, tocá Compartir y después ‘Agregar a inicio’.");
+      return;
+    }
+    window.alert("Abrí el menú del navegador y elegí ‘Instalar aplicación’ o ‘Agregar a pantalla de inicio’.");
+  });
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("/sw.js").catch(function () {});
+    });
+  }
 
   function newId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 
