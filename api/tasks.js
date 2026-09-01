@@ -2,6 +2,17 @@ import { asc } from "drizzle-orm";
 import { tasks as tasksTable } from "../db/schema.js";
 import { database, ensureSeed, rowToTask } from "../lib/db.js";
 
+function normalizeCostItems(items) {
+  if (!Array.isArray(items)) return [];
+  return items.slice(0, 100).map((item) => {
+    const parsedCost = Number(item?.cost);
+    return {
+      name: String(item?.name || "").trim().slice(0, 160),
+      cost: Number.isFinite(parsedCost) ? Math.max(0, parsedCost) : 0,
+    };
+  }).filter((item) => item.name || item.cost);
+}
+
 export default async function handler(request, response) {
   try {
     const db = database();
@@ -22,7 +33,8 @@ export default async function handler(request, response) {
           eff: Number(task.eff || 0), prio: String(task.prio || "none"),
           exec: String(task.exec || ""), road: String(task.road || "Sin asignar"),
           status: ["pendiente", "curso", "hecho"].includes(task.status) ? task.status : "pendiente",
-          materials: Array.isArray(task.materials) ? task.materials : [],
+          materials: normalizeCostItems(task.materials),
+          tools: normalizeCostItems(task.tools),
           comments: String(task.comments || ""),
           checklist: Array.isArray(task.checklist) ? task.checklist.slice(0, 100).map((item) => ({
             id: String(item?.id || crypto.randomUUID().slice(0, 10)),
