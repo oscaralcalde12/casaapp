@@ -225,6 +225,20 @@
   .add-mat { margin-top: 8px; border: 1px dashed var(--line-strong); background: none; color: var(--accent); font: 600 .82rem "Public Sans", sans-serif; padding: 8px; width: 100%; border-radius: 9px; cursor: pointer; transition: border-color .12s, background .12s; }
   .add-mat:hover { border-color: var(--accent); background: var(--accent-soft); }
   .mat-hint { margin: 8px 0 0; font-size: .72rem; color: var(--faint); }
+  .checklist-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .checklist-head label { margin: 0; }
+  .checklist-progress { font: 600 .75rem "IBM Plex Mono", monospace; color: var(--accent-ink); }
+  .checklist-list { display: flex; flex-direction: column; gap: 7px; }
+  .checklist-list:empty { display: none; }
+  .checklist-row { display: grid; grid-template-columns: 22px minmax(0, 1fr) 30px; gap: 7px; align-items: center; }
+  .checklist-row input[type=checkbox] { width: 18px; height: 18px; margin: 0; accent-color: var(--p-baja); cursor: pointer; }
+  .checklist-row .check-text { padding: 7px 9px; font-size: .88rem; min-width: 0; }
+  .checklist-row.done .check-text { color: var(--faint); text-decoration: line-through; }
+  .check-del { border: 1px solid var(--line-strong); background: var(--paper); color: var(--faint); width: 30px; height: 32px; border-radius: 8px; cursor: pointer; font-size: 1.1rem; line-height: 1; display: grid; place-items: center; }
+  .check-del:hover { color: var(--p-alta); background: var(--p-alta-bg); border-color: transparent; }
+  .add-check { margin-top: 8px; border: 1px dashed var(--line-strong); background: none; color: var(--accent); font: 600 .82rem "Public Sans", sans-serif; padding: 8px; width: 100%; border-radius: 9px; cursor: pointer; }
+  .add-check:hover { border-color: var(--accent); background: var(--accent-soft); }
+  .check-hint { margin: 8px 0 0; font-size: .72rem; color: var(--faint); }
   .imgbox { border: 1px dashed var(--line-strong); border-radius: 10px; overflow: hidden; background: var(--paper); min-height: 96px; display: flex; align-items: center; justify-content: center; position: relative; }
   .imgbox.has { border-style: solid; padding: 0; }
   .imgbox.has img { width: 100%; height: 118px; object-fit: cover; display: block; cursor: zoom-in; }
@@ -710,6 +724,15 @@
         <textarea id="m-comments" rows="2" placeholder="Presupuestos, contactos, recordatorios…"></textarea>
       </div>
       <div class="field">
+        <div class="checklist-head">
+          <label>Checklist</label>
+          <span class="checklist-progress" id="m-check-progress">0 / 0</span>
+        </div>
+        <div class="checklist-list" id="m-checklist-list"></div>
+        <button type="button" class="add-check" id="m-add-check">+ Agregar ítem</button>
+        <p class="check-hint">Marcá los pasos completados y guardá la tarea para sincronizarlos.</p>
+      </div>
+      <div class="field">
         <label>Estado</label>
         <div class="seg seg3">
           <input type="radio" name="mstatus" id="ms-pendiente" value="pendiente" checked><label class="s-pend" for="ms-pendiente">Pendiente</label>
@@ -857,6 +880,10 @@
       t.materials = t.materials.map(function (m) { return { name: String(m.name || ""), cost: Number(m.cost) || 0 }; });
       t.cost = costFromMats(t.materials);
       if (t.comments == null) t.comments = "";
+      if (!Array.isArray(t.checklist)) t.checklist = [];
+      t.checklist = t.checklist.map(function (item) {
+        return { id: String(item && item.id || newId()), text: String(item && item.text || ""), done: !!(item && item.done) };
+      }).filter(function (item) { return item.text.trim(); });
       if (t.imgActual == null) t.imgActual = "";
       if (t.imgFuturo == null) t.imgFuturo = "";
       t.startDate = dateValue(t.startDate);
@@ -866,6 +893,7 @@
   }
   var ICON_BOX = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5V8Z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg>';
   var ICON_NOTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg>';
+  var ICON_CHECKLIST = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>';
   function preview(s) { s = String(s).replace(/\s+/g, " ").trim(); return esc(s.length > 26 ? s.slice(0, 26) + "…" : s); }
   function uniq(arr) { return arr.filter(function (v, i) { return v && arr.indexOf(v) === i; }).sort(function (a, b) { return a.localeCompare(b, "es"); }); }
   // ---------- imágenes ----------
@@ -990,6 +1018,46 @@
     setTimeout(function () { var inp = matList.querySelector(".mat-row:last-child .mat-name"); if (inp) inp.focus(); }, 10);
   });
 
+  // editor de checklist
+  var checklistDraft = [];
+  var checklistList = $("#m-checklist-list"), checklistProgress = $("#m-check-progress");
+  function updateChecklistProgress() {
+    var done = checklistDraft.filter(function (item) { return item.done; }).length;
+    checklistProgress.textContent = done + " / " + checklistDraft.length;
+  }
+  function renderChecklist() {
+    checklistList.innerHTML = checklistDraft.map(function (item, i) {
+      return '<div class="checklist-row ' + (item.done ? "done" : "") + '" data-i="' + i + '">' +
+        '<input type="checkbox" class="check-done" aria-label="Marcar ítem como completado" ' + (item.done ? "checked" : "") + '>' +
+        '<input type="text" class="check-text" maxlength="240" placeholder="Paso o recordatorio" value="' + esc(item.text || "") + '">' +
+        '<button type="button" class="check-del" aria-label="Quitar ítem">×</button>' +
+      '</div>';
+    }).join("");
+    updateChecklistProgress();
+  }
+  checklistList.addEventListener("input", function (e) {
+    var row = e.target.closest(".checklist-row"); if (!row || !e.target.classList.contains("check-text")) return;
+    checklistDraft[+row.getAttribute("data-i")].text = e.target.value;
+  });
+  checklistList.addEventListener("change", function (e) {
+    var row = e.target.closest(".checklist-row"); if (!row || !e.target.classList.contains("check-done")) return;
+    checklistDraft[+row.getAttribute("data-i")].done = e.target.checked;
+    row.classList.toggle("done", e.target.checked); updateChecklistProgress();
+  });
+  checklistList.addEventListener("click", function (e) {
+    if (!e.target.classList.contains("check-del")) return;
+    var row = e.target.closest(".checklist-row"); checklistDraft.splice(+row.getAttribute("data-i"), 1); renderChecklist();
+  });
+  checklistList.addEventListener("keydown", function (e) {
+    if (e.key !== "Enter" || !e.target.classList.contains("check-text")) return;
+    e.preventDefault(); checklistDraft.push({ id: newId(), text: "", done: false }); renderChecklist();
+    setTimeout(function () { var input = checklistList.querySelector(".checklist-row:last-child .check-text"); if (input) input.focus(); }, 10);
+  });
+  $("#m-add-check").addEventListener("click", function () {
+    checklistDraft.push({ id: newId(), text: "", done: false }); renderChecklist();
+    setTimeout(function () { var input = checklistList.querySelector(".checklist-row:last-child .check-text"); if (input) input.focus(); }, 10);
+  });
+
   // editor de imágenes (estado actual / futuro)
   var imgDraft = { actual: "", futuro: "" }, pickKind = "actual", imgBusy = { actual: false, futuro: false };
   var imgInput = $("#img-input");
@@ -1050,6 +1118,10 @@
     renderImgbox("actual"); renderImgbox("futuro");
     document.querySelector('input[name=mprio][value="' + (t ? t.prio : "none") + '"]').checked = true;
     $("#m-comments").value = t ? (t.comments || "") : "";
+    checklistDraft = (t && Array.isArray(t.checklist)) ? t.checklist.map(function (item) {
+      return { id: item.id || newId(), text: item.text || "", done: !!item.done };
+    }) : [];
+    renderChecklist();
     document.querySelector('input[name=mstatus][value="' + (t ? t.status : "pendiente") + '"]').checked = true;
     overlay.classList.add("on");
     setTimeout(function () { $("#m-name").focus(); }, 30);
@@ -1084,6 +1156,9 @@
       prio: document.querySelector('input[name=mprio]:checked').value,
       materials: materials,
       comments: $("#m-comments").value.trim(),
+      checklist: checklistDraft.map(function (item) {
+        return { id: item.id || newId(), text: (item.text || "").trim(), done: !!item.done };
+      }).filter(function (item) { return item.text; }),
       imgActual: imgDraft.actual || "",
       imgFuturo: imgDraft.futuro || "",
       startDate: $("#m-start").value,
@@ -1198,6 +1273,11 @@
       meta += '<span class="chip ic" title="' + esc(mt) + '">' + ICON_BOX + t.materials.length + (t.materials.length === 1 ? " material" : " materiales") + '</span>';
     }
     if (t.comments) meta += '<span class="chip ic" title="' + esc(t.comments) + '">' + ICON_NOTE + preview(t.comments) + '</span>';
+    if (t.checklist && t.checklist.length) {
+      var checked = t.checklist.filter(function (item) { return item.done; }).length;
+      var checkTitle = t.checklist.map(function (item) { return (item.done ? "✓ " : "□ ") + item.text; }).join(" · ");
+      meta += '<span class="chip ic" title="' + esc(checkTitle) + '">' + ICON_CHECKLIST + checked + '/' + t.checklist.length + ' checklist</span>';
+    }
     return '<div class="task ' + (isDone(t) ? "done" : "") + '" data-id="' + t.id + '">' +
       '<button class="stbtn st-' + t.status + '" data-act="status" title="Cambiar estado" aria-label="Estado: ' + STATUS_LABEL[t.status] + '. Clic para cambiar">' + STATUS_LABEL[t.status] + '</button>' +
       '<div class="pin ' + t.prio + '">' + pinTxt + '</div>' +
