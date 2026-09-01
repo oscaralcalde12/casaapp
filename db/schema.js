@@ -12,6 +12,7 @@ export const tasks = pgTable("tasks", {
   road: text("road").notNull().default("Sin asignar"),
   status: text("status").notNull().default("pendiente"),
   materials: jsonb("materials").notNull().default([]),
+  tools: jsonb("tools").notNull().default([]),
   comments: text("comments").notNull().default(""),
   checklist: jsonb("checklist").notNull().default([]),
   imgActual: text("img_actual").notNull().default(""),
