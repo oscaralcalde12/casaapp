@@ -237,8 +237,10 @@
   .mat-list { display: flex; flex-direction: column; gap: 6px; }
   .mat-list:empty { display: none; }
   .mat-row { display: grid; grid-template-columns: 1fr 96px auto; gap: 6px; align-items: center; }
-  .mat-row .mat-name, .mat-row .mat-cost, .mat-row .mat-link { padding: 7px 9px; font-size: .88rem; }
-  .mat-row .mat-link { grid-column: 1 / -1; }
+  .mat-row .mat-name, .mat-row .mat-cost, .mat-row .mat-qty, .mat-row .mat-unit-cost, .mat-row .mat-link { padding: 7px 9px; font-size: .88rem; }
+  .mat-row.material-edit-row { grid-template-columns: minmax(100px, 1fr) 64px 104px 30px; }
+  .material-edit-row .mat-link { grid-column: 1 / 3; }
+  .mat-line-total { grid-column: 3 / 5; text-align: right; color: var(--accent-ink); font: 600 .72rem "IBM Plex Mono", monospace; white-space: nowrap; }
   .mat-del { border: 1px solid var(--line-strong); background: var(--paper); color: var(--faint); width: 30px; height: 32px; border-radius: 8px; cursor: pointer; font-size: 1.1rem; line-height: 1; display: grid; place-items: center; transition: color .12s, background .12s, border-color .12s; }
   .mat-del:hover { color: var(--p-alta); background: var(--p-alta-bg); border-color: transparent; }
   .add-mat { margin-top: 8px; border: 1px dashed var(--line-strong); background: none; color: var(--accent); font: 600 .82rem "Public Sans", sans-serif; padding: 8px; width: 100%; border-radius: 9px; cursor: pointer; transition: border-color .12s, background .12s; }
@@ -703,8 +705,8 @@
     </div>
     <div class="materials-summary">
       <div class="material-stat"><strong id="materials-unique">0</strong><span>Materiales</span></div>
-      <div class="material-stat"><strong id="materials-entries">0</strong><span>Necesidades</span></div>
-      <div class="material-stat"><strong id="materials-cost">$0</strong><span>Costo estimado</span></div>
+      <div class="material-stat"><strong id="materials-entries">0</strong><span>Unidades</span></div>
+      <div class="material-stat"><strong id="materials-cost">$0</strong><span>Costo total</span></div>
     </div>
     <div class="materials-list" id="materials-list"></div>
   </section>
@@ -774,7 +776,7 @@
       <div class="field">
         <div class="slider-head">
           <label style="margin:0">Materiales</label>
-          <span class="v" id="m-mat-total">Subtotal: $0</span>
+          <span class="v" id="m-mat-total">Costo total: $0</span>
         </div>
         <div class="mat-list" id="m-mat-list"></div>
         <button type="button" class="add-mat" id="m-add-mat">+ Agregar material</button>
@@ -782,7 +784,7 @@
       <div class="field">
         <div class="slider-head">
           <label style="margin:0">Herramientas</label>
-          <span class="v" id="m-tool-total">Subtotal: $0</span>
+          <span class="v" id="m-tool-total">Costo total: $0</span>
         </div>
         <div class="mat-list" id="m-tool-list"></div>
         <button type="button" class="add-mat" id="m-add-tool">+ Agregar herramienta</button>
@@ -990,8 +992,18 @@
   var STATUS_LABEL = { pendiente: "Pendiente", curso: "En curso", hecho: "Hecho" };
   function isDone(t) { return t.status === "hecho"; }
   function matSum(arr) { return (arr || []).reduce(function (s, m) { return s + (Number(m.cost) || 0); }, 0); }
+  function materialQuantity(material) {
+    var quantity = Number(material && material.quantity);
+    return isFinite(quantity) && quantity > 0 ? quantity : 1;
+  }
+  function materialUnitCost(material) {
+    var value = material && material.unitCost != null ? material.unitCost : material && material.cost;
+    return Math.max(0, Number(value) || 0);
+  }
+  function materialLineCost(material) { return materialQuantity(material) * materialUnitCost(material); }
+  function materialsSum(arr) { return (arr || []).reduce(function (sum, material) { return sum + materialLineCost(material); }, 0); }
   function costFromItems(materials, tools) {
-    return ((materials && materials.length) || (tools && tools.length)) ? matSum(materials) + matSum(tools) : null;
+    return ((materials && materials.length) || (tools && tools.length)) ? materialsSum(materials) + matSum(tools) : null;
   }
   function normalize(list) {
     (list || []).forEach(function (t) {
@@ -999,7 +1011,10 @@
       if (typeof t.materials === "string") { var s = t.materials.trim(); t.materials = s ? [{ name: s, cost: 0 }] : []; }
       else if (!Array.isArray(t.materials)) t.materials = [];
       if (!t.materials.length && t.cost != null && t.cost !== "" && Number(t.cost) > 0) t.materials = [{ name: "Costo estimado", cost: Number(t.cost) }];
-      t.materials = t.materials.map(function (m) { return { name: String(m.name || ""), cost: Number(m.cost) || 0, url: cleanHttpUrl(m.url) }; });
+      t.materials = t.materials.map(function (m) {
+        var quantity = materialQuantity(m), unitCost = materialUnitCost(m);
+        return { name: String(m.name || ""), quantity: quantity, unitCost: unitCost, cost: quantity * unitCost, url: cleanHttpUrl(m.url) };
+      });
       if (!Array.isArray(t.tools)) t.tools = [];
       t.tools = t.tools.map(function (tool) { return { name: String(tool.name || ""), cost: Number(tool.cost) || 0 }; });
       t.cost = costFromItems(t.materials, t.tools);
@@ -1024,6 +1039,8 @@
     var url = String(value || "").trim();
     return /^https?:\/\/[^\s]+$/i.test(url) ? url : "";
   }
+  var qtyFmt = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 });
+  function formatQty(value) { return qtyFmt.format(Number(value) || 0); }
   function uniq(arr) { return arr.filter(function (v, i) { return v && arr.indexOf(v) === i; }).sort(function (a, b) { return a.localeCompare(b, "es"); }); }
   // ---------- imágenes ----------
   function driveOn() { return false; }
@@ -1127,17 +1144,19 @@
   var matList = $("#m-mat-list"), toolList = $("#m-tool-list");
   var matTotal = $("#m-mat-total"), toolTotal = $("#m-tool-total"), estimateTotal = $("#m-total");
   function updateCostTotals() {
-    matTotal.textContent = "Subtotal: " + money(matSum(matDraft));
-    toolTotal.textContent = "Subtotal: " + money(matSum(toolDraft));
-    estimateTotal.textContent = money(matSum(matDraft) + matSum(toolDraft));
+    matTotal.textContent = "Costo total: " + money(materialsSum(matDraft));
+    toolTotal.textContent = "Costo total: " + money(matSum(toolDraft));
+    estimateTotal.textContent = money(materialsSum(matDraft) + matSum(toolDraft));
   }
   function renderMats() {
     matList.innerHTML = matDraft.map(function (m, i) {
-      return '<div class="mat-row" data-i="' + i + '">' +
+      return '<div class="mat-row material-edit-row" data-i="' + i + '">' +
         '<input type="text" class="mat-name" placeholder="Material" value="' + esc(m.name || "") + '">' +
-        '<input type="number" class="mat-cost" placeholder="$" min="0" step="100" value="' + (m.cost == null || m.cost === "" ? "" : m.cost) + '">' +
+        '<input type="number" class="mat-qty" aria-label="Cantidad" placeholder="Cant." min="0.01" step="0.01" value="' + materialQuantity(m) + '">' +
+        '<input type="number" class="mat-unit-cost" aria-label="Costo unitario" placeholder="Costo unit." min="0" step="100" value="' + (m.unitCost == null || m.unitCost === "" ? "" : m.unitCost) + '">' +
         '<button type="button" class="mat-del" aria-label="Quitar material">×</button>' +
         '<input type="url" class="mat-link" placeholder="Link de compra (opcional)" value="' + esc(m.url || "") + '">' +
+        '<span class="mat-line-total">Costo total: ' + money(materialLineCost(m)) + '</span>' +
       '</div>';
     }).join("");
     updateCostTotals();
@@ -1146,7 +1165,8 @@
     var row = e.target.closest(".mat-row"); if (!row) return;
     var i = +row.getAttribute("data-i");
     if (e.target.classList.contains("mat-name")) matDraft[i].name = e.target.value;
-    else if (e.target.classList.contains("mat-cost")) { matDraft[i].cost = e.target.value === "" ? 0 : (parseFloat(e.target.value) || 0); updateCostTotals(); }
+    else if (e.target.classList.contains("mat-qty")) { matDraft[i].quantity = e.target.value === "" ? 1 : (parseFloat(e.target.value) || 1); matDraft[i].cost = materialLineCost(matDraft[i]); row.querySelector(".mat-line-total").textContent = "Costo total: " + money(matDraft[i].cost); updateCostTotals(); }
+    else if (e.target.classList.contains("mat-unit-cost")) { matDraft[i].unitCost = e.target.value === "" ? 0 : (parseFloat(e.target.value) || 0); matDraft[i].cost = materialLineCost(matDraft[i]); row.querySelector(".mat-line-total").textContent = "Costo total: " + money(matDraft[i].cost); updateCostTotals(); }
     else if (e.target.classList.contains("mat-link")) matDraft[i].url = e.target.value;
   });
   matList.addEventListener("click", function (e) {
@@ -1154,7 +1174,7 @@
     var row = e.target.closest(".mat-row"); matDraft.splice(+row.getAttribute("data-i"), 1); renderMats();
   });
   $("#m-add-mat").addEventListener("click", function () {
-    matDraft.push({ name: "", cost: "", url: "" }); renderMats();
+    matDraft.push({ name: "", quantity: 1, unitCost: "", cost: 0, url: "" }); renderMats();
     setTimeout(function () { var inp = matList.querySelector(".mat-row:last-child .mat-name"); if (inp) inp.focus(); }, 10);
   });
 
@@ -1276,7 +1296,9 @@
     $("#m-end").value = t ? dateValue(t.endDate) : "";
     $("#m-end").min = $("#m-start").value;
     mEff.value = t ? (t.eff || 0) : 0; mEffVal.textContent = effLabel(mEff.value);
-    matDraft = (t && t.materials) ? t.materials.map(function (m) { return { name: m.name, cost: m.cost, url: m.url || "" }; }) : [];
+    matDraft = (t && t.materials) ? t.materials.map(function (m) {
+      return { name: m.name, quantity: materialQuantity(m), unitCost: materialUnitCost(m), cost: materialLineCost(m), url: m.url || "" };
+    }) : [];
     toolDraft = (t && t.tools) ? t.tools.map(function (tool) { return { name: tool.name, cost: tool.cost }; }) : [];
     renderMats();
     renderTools();
@@ -1311,7 +1333,10 @@
     if ($("#m-start").value && $("#m-end").value && $("#m-end").value < $("#m-start").value) {
       $("#m-end").focus(); return;
     }
-    var materials = matDraft.map(function (m) { return { name: (m.name || "").trim(), cost: Number(m.cost) || 0, url: cleanHttpUrl(m.url) }; })
+    var materials = matDraft.map(function (m) {
+      var quantity = materialQuantity(m), unitCost = materialUnitCost(m);
+      return { name: (m.name || "").trim(), quantity: quantity, unitCost: unitCost, cost: quantity * unitCost, url: cleanHttpUrl(m.url) };
+    })
       .filter(function (m) { return m.name || m.cost; });
     var tools = toolDraft.map(function (tool) { return { name: (tool.name || "").trim(), cost: Number(tool.cost) || 0 }; })
       .filter(function (tool) { return tool.name || tool.cost; });
@@ -1440,7 +1465,9 @@
     var dates = taskDates(t);
     if (dates) meta += '<span class="chip road-date">' + dateShort(t.startDate || t.endDate) + (t.startDate && t.endDate && t.startDate !== t.endDate ? ' → ' + dateShort(t.endDate) : '') + '</span>';
     if (t.materials && t.materials.length) {
-      var mt = t.materials.map(function (m) { return m.name + (m.cost ? ": " + money(m.cost) : ""); }).join(" · ");
+      var mt = t.materials.map(function (m) {
+        return m.name + " × " + formatQty(materialQuantity(m)) + (materialUnitCost(m) ? " a " + money(materialUnitCost(m)) : "") + (materialLineCost(m) ? ": " + money(materialLineCost(m)) : "");
+      }).join(" · ");
       meta += '<span class="chip ic" title="' + esc(mt) + '">' + ICON_BOX + t.materials.length + (t.materials.length === 1 ? " material" : " materiales") + '</span>';
     }
     if (t.tools && t.tools.length) {
@@ -1551,19 +1578,20 @@
         var name = String(material.name || "").trim();
         if (!name) return;
         var key = name.toLocaleLowerCase("es");
-        var item = grouped[key] || (grouped[key] = { name: name, count: 0, cost: 0, tasks: [], links: [] });
+        var item = grouped[key] || (grouped[key] = { name: name, count: 0, quantity: 0, cost: 0, tasks: [], links: [] });
         item.count += 1;
-        item.cost += Number(material.cost) || 0;
+        item.quantity += materialQuantity(material);
+        item.cost += materialLineCost(material);
         if (!item.tasks.some(function (entry) { return entry.id === task.id; })) item.tasks.push({ id: task.id, name: task.name });
         var link = cleanHttpUrl(material.url);
         if (link && item.links.indexOf(link) === -1) item.links.push(link);
       });
     });
     var materials = Object.keys(grouped).map(function (key) { return grouped[key]; }).sort(function (a, b) { return a.name.localeCompare(b.name, "es"); });
-    var entries = materials.reduce(function (sum, item) { return sum + item.count; }, 0);
+    var entries = materials.reduce(function (sum, item) { return sum + item.quantity; }, 0);
     var total = materials.reduce(function (sum, item) { return sum + item.cost; }, 0);
     $("#materials-unique").textContent = materials.length;
-    $("#materials-entries").textContent = entries;
+    $("#materials-entries").textContent = formatQty(entries);
     $("#materials-cost").textContent = money(total);
     if (!materials.length) {
       $("#materials-list").innerHTML = '<div class="materials-empty"><strong>No hay materiales cargados</strong><span>Agregalos desde una tarea para construir esta lista automáticamente.</span></div>';
@@ -1577,7 +1605,7 @@
         return '<a class="material-link" href="' + esc(url) + '" target="_blank" rel="noopener noreferrer">Abrir link' + (item.links.length > 1 ? " " + (index + 1) : "") + '</a>';
       }).join("");
       return '<div class="material-row">' +
-        '<div class="material-name"><strong>' + esc(item.name) + '</strong><span>' + item.count + (item.count === 1 ? " necesidad" : " necesidades") + '</span></div>' +
+        '<div class="material-name"><strong>' + esc(item.name) + '</strong><span>' + formatQty(item.quantity) + (item.quantity === 1 ? " unidad" : " unidades") + ' · ' + item.tasks.length + (item.tasks.length === 1 ? " tarea" : " tareas") + '</span></div>' +
         '<div class="material-tasks">' + taskButtons + '</div>' +
         '<div class="material-cost">' + (item.cost ? money(item.cost) : "$ —") + '</div>' +
         '<div class="material-links">' + (links || '<span class="chip warn">Sin link</span>') + '</div>' +
