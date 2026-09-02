@@ -2,14 +2,19 @@ import { asc } from "drizzle-orm";
 import { tasks as tasksTable } from "../db/schema.js";
 import { database, ensureSeed, rowToTask } from "../lib/db.js";
 
-function normalizeCostItems(items) {
+function normalizeCostItems(items, includeUrl = false) {
   if (!Array.isArray(items)) return [];
   return items.slice(0, 100).map((item) => {
     const parsedCost = Number(item?.cost);
-    return {
+    const normalized = {
       name: String(item?.name || "").trim().slice(0, 160),
       cost: Number.isFinite(parsedCost) ? Math.max(0, parsedCost) : 0,
     };
+    if (includeUrl) {
+      const url = String(item?.url || "").trim().slice(0, 1000);
+      normalized.url = /^https?:\/\//i.test(url) ? url : "";
+    }
+    return normalized;
   }).filter((item) => item.name || item.cost);
 }
 
@@ -33,7 +38,7 @@ export default async function handler(request, response) {
           eff: Number(task.eff || 0), prio: String(task.prio || "none"),
           exec: String(task.exec || ""), road: String(task.road || "Sin asignar"),
           status: ["pendiente", "curso", "hecho"].includes(task.status) ? task.status : "pendiente",
-          materials: normalizeCostItems(task.materials),
+          materials: normalizeCostItems(task.materials, true),
           tools: normalizeCostItems(task.tools),
           comments: String(task.comments || ""),
           checklist: Array.isArray(task.checklist) ? task.checklist.slice(0, 100).map((item) => ({
