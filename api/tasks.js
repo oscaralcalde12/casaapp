@@ -11,6 +11,11 @@ function normalizeCostItems(items, includeUrl = false) {
       cost: Number.isFinite(parsedCost) ? Math.max(0, parsedCost) : 0,
     };
     if (includeUrl) {
+      const parsedQuantity = Number(item?.quantity);
+      const parsedUnitCost = Number(item?.unitCost ?? item?.cost);
+      normalized.quantity = Number.isFinite(parsedQuantity) && parsedQuantity > 0 ? Math.min(parsedQuantity, 1000000) : 1;
+      normalized.unitCost = Number.isFinite(parsedUnitCost) ? Math.max(0, parsedUnitCost) : 0;
+      normalized.cost = normalized.quantity * normalized.unitCost;
       const url = String(item?.url || "").trim().slice(0, 1000);
       normalized.url = /^https?:\/\//i.test(url) ? url : "";
     }
