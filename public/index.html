@@ -500,6 +500,43 @@
   .materials-empty strong { display: block; color: var(--ink); font-family: "Bricolage Grotesque", sans-serif; font-size: 1.05rem; }
   .materials-empty span { display: block; margin-top: 6px; font-size: .82rem; }
 
+  .progress-panel { min-height: 420px; }
+  .progress-titlebar { align-items: flex-start; }
+  .progress-titlebar p { margin: 5px 0 0 16px; color: var(--faint); font-size: .76rem; }
+  .progress-dashboard { display: grid; grid-template-columns: minmax(260px, .78fr) minmax(420px, 1.22fr); gap: 18px; padding: 18px; }
+  .progress-overview, .progress-breakdown { border: 1px solid var(--line); border-radius: 14px; background: var(--paper); }
+  .progress-overview { padding: 24px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+  .progress-ring {
+    --progress: 0%; width: 158px; height: 158px; padding: 13px; border-radius: 50%;
+    background: conic-gradient(var(--p-baja) var(--progress), var(--line) 0);
+    box-shadow: 0 15px 34px -25px rgba(23,33,43,.8); transition: background .3s ease;
+  }
+  .progress-ring-core {
+    width: 100%; height: 100%; border-radius: 50%; background: var(--surface);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .progress-ring-core strong { color: var(--ink); font: 700 2.15rem "IBM Plex Mono", monospace; letter-spacing: -.05em; }
+  .progress-ring-core span { margin-top: 2px; color: var(--faint); font-size: .66rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+  .progress-detail { margin: 15px 0 0; color: var(--muted); font-size: .82rem; }
+  .progress-states { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 20px; }
+  .progress-state { padding: 10px 7px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+  .progress-state strong { display: block; color: var(--ink); font: 700 1rem "IBM Plex Mono", monospace; }
+  .progress-state span { display: block; margin-top: 3px; color: var(--faint); font-size: .61rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .progress-breakdowns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+  .progress-breakdown { overflow: hidden; }
+  .progress-breakdown h3 { margin: 0; padding: 14px 16px; border-bottom: 1px solid var(--line); font-size: .78rem; letter-spacing: .02em; }
+  .progress-list { padding: 8px; }
+  .progress-item { padding: 10px 9px; border-radius: 9px; }
+  .progress-item + .progress-item { border-top: 1px solid var(--line); }
+  .progress-item:hover { background: var(--surface); }
+  .progress-item-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .progress-item-head strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .79rem; }
+  .progress-item-head span { color: var(--accent-ink); font: 700 .76rem "IBM Plex Mono", monospace; }
+  .progress-item-track { height: 7px; margin-top: 7px; overflow: hidden; border-radius: 10px; background: var(--line); }
+  .progress-item-track span { display: block; height: 100%; border-radius: inherit; background: var(--p-baja); transition: width .3s ease; }
+  .progress-item-meta { margin-top: 5px; color: var(--faint); font-size: .65rem; }
+  .progress-empty { padding: 35px 16px; text-align: center; color: var(--muted); font-size: .8rem; }
+
   @media (max-width: 1080px) {
     .grid { grid-template-columns: 1fr; }
     .plot { height: 400px; }
@@ -540,10 +577,12 @@
     .overlay { padding: 0; align-items: flex-end; }
     .modal { max-height: 94vh; border-radius: 20px 20px 0 0; }
     .view-switch { margin-left: 0; width: 100%; }
-    .view-tab { flex: 1; justify-content: center; }
+    .view-tab { flex: 1; justify-content: center; gap: 5px; padding-inline: 8px; font-size: .72rem; }
     .material-row { grid-template-columns: 1fr auto; gap: 8px; }
     .material-tasks { grid-column: 1 / -1; }
     .material-links { grid-column: 1 / -1; justify-content: flex-start; }
+    .progress-dashboard { grid-template-columns: 1fr; padding: 12px; }
+    .progress-breakdowns { grid-template-columns: 1fr; }
     .timeline { --label-w: 180px; }
     .timeline-label { padding-inline: 11px; }
     .timeline-label strong { max-width: 154px; }
@@ -628,6 +667,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h10M4 18h13"/><circle cx="18" cy="12" r="2"/><circle cx="20" cy="18" r="2"/></svg>
       Roadmap
     </button>
+    <button class="view-tab" id="view-progress" type="button" role="tab" aria-selected="false" aria-controls="progress-view">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V9M10 19V5M16 19v-7M22 19V3"/><path d="M2 19h22"/></svg>
+      Progreso
+    </button>
     <button class="view-tab" id="view-materials" type="button" role="tab" aria-selected="false" aria-controls="materials-view">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8 12 3 3 8v8l9 5 9-5V8Z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg>
       Materiales
@@ -693,6 +736,38 @@
     </div>
     <div class="timeline-scroll" id="timeline-scroll" hidden>
       <div class="timeline" id="timeline"></div>
+    </div>
+  </section>
+
+  <section class="panel progress-panel" id="progress-view" role="tabpanel" aria-labelledby="view-progress" hidden>
+    <div class="panel-h progress-titlebar">
+      <div>
+        <h2>Progreso de la obra</h2>
+        <p>Porcentaje de tareas marcadas como Hecho según los filtros activos.</p>
+      </div>
+    </div>
+    <div class="progress-dashboard">
+      <div class="progress-overview">
+        <div class="progress-ring" id="progress-ring" role="progressbar" aria-label="Progreso general" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div class="progress-ring-core"><strong id="progress-overall">0%</strong><span>completado</span></div>
+        </div>
+        <p class="progress-detail" id="progress-detail">0 de 0 tareas completadas</p>
+        <div class="progress-states">
+          <div class="progress-state"><strong id="progress-pending">0</strong><span>Pendientes</span></div>
+          <div class="progress-state"><strong id="progress-active">0</strong><span>En curso</span></div>
+          <div class="progress-state"><strong id="progress-done">0</strong><span>Hechas</span></div>
+        </div>
+      </div>
+      <div class="progress-breakdowns">
+        <section class="progress-breakdown">
+          <h3>Avance por sector</h3>
+          <div class="progress-list" id="progress-sectors"></div>
+        </section>
+        <section class="progress-breakdown">
+          <h3>Avance por roadmap</h3>
+          <div class="progress-list" id="progress-roadmaps"></div>
+        </section>
+      </div>
     </div>
   </section>
 
@@ -1107,8 +1182,8 @@
   $("#fl-done").addEventListener("change", function () { flt.showDone = this.checked; render(); });
   $("#fl-group").addEventListener("change", function () { flt.group = this.value; collapsed = {}; render(); });
   function applyView() {
-    if (["board", "roadmap", "materials"].indexOf(viewMode) === -1) viewMode = "board";
-    ["board", "roadmap", "materials"].forEach(function (mode) {
+    if (["board", "roadmap", "progress", "materials"].indexOf(viewMode) === -1) viewMode = "board";
+    ["board", "roadmap", "progress", "materials"].forEach(function (mode) {
       var active = viewMode === mode;
       $("#" + mode + "-view").hidden = !active;
       $("#view-" + mode).classList.toggle("active", active);
@@ -1121,6 +1196,7 @@
   }
   $("#view-board").addEventListener("click", function () { chooseView("board"); });
   $("#view-roadmap").addEventListener("click", function () { chooseView("roadmap"); });
+  $("#view-progress").addEventListener("click", function () { chooseView("progress"); });
   $("#view-materials").addEventListener("click", function () { chooseView("materials"); });
   $("#roadmap-add").addEventListener("click", function () { openModal(null); });
   applyView();
@@ -1421,6 +1497,7 @@
     renderList(visible);
     renderPlot(active.filter(placed));
     renderRoadmap(visible);
+    renderProgress(visible);
     renderMaterials(visible);
   }
 
@@ -1569,6 +1646,49 @@
   $("#timeline").addEventListener("click", function (e) {
     var row = e.target.closest(".timeline-row"); if (row) openModal(row.getAttribute("data-id"));
   });
+
+  function completionPercent(done, total) { return total ? Math.round(done / total * 100) : 0; }
+  function renderProgressGroup(container, source, field, emptyLabel) {
+    var grouped = Object.create(null);
+    source.forEach(function (task) {
+      var name = String(task[field] || emptyLabel).trim() || emptyLabel;
+      var item = grouped[name] || (grouped[name] = { name: name, total: 0, done: 0, active: 0 });
+      item.total += 1;
+      if (isDone(task)) item.done += 1;
+      else if (task.status === "curso") item.active += 1;
+    });
+    var groups = Object.keys(grouped).map(function (key) {
+      var item = grouped[key]; item.percent = completionPercent(item.done, item.total); return item;
+    }).sort(function (a, b) {
+      return b.percent - a.percent || b.total - a.total || a.name.localeCompare(b.name, "es");
+    });
+    if (!groups.length) {
+      container.innerHTML = '<div class="progress-empty">No hay tareas para los filtros seleccionados.</div>';
+      return;
+    }
+    container.innerHTML = groups.map(function (item) {
+      return '<div class="progress-item">' +
+        '<div class="progress-item-head"><strong title="' + esc(item.name) + '">' + esc(item.name) + '</strong><span>' + item.percent + '%</span></div>' +
+        '<div class="progress-item-track" role="progressbar" aria-label="Progreso de ' + esc(item.name) + '" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + item.percent + '"><span style="width:' + item.percent + '%"></span></div>' +
+        '<div class="progress-item-meta">' + item.done + ' de ' + item.total + ' completada' + (item.done === 1 ? '' : 's') + (item.active ? ' · ' + item.active + ' en curso' : '') + '</div>' +
+      '</div>';
+    }).join("");
+  }
+  function renderProgress(visible) {
+    var done = visible.filter(isDone).length;
+    var active = visible.filter(function (task) { return task.status === "curso"; }).length;
+    var pending = visible.length - done - active;
+    var percent = completionPercent(done, visible.length);
+    $("#progress-overall").textContent = percent + "%";
+    $("#progress-detail").textContent = done + " de " + visible.length + " tarea" + (visible.length === 1 ? "" : "s") + " completada" + (visible.length === 1 ? "" : "s");
+    $("#progress-pending").textContent = pending;
+    $("#progress-active").textContent = active;
+    $("#progress-done").textContent = done;
+    $("#progress-ring").style.setProperty("--progress", percent + "%");
+    $("#progress-ring").setAttribute("aria-valuenow", String(percent));
+    renderProgressGroup($("#progress-sectors"), visible, "sector", "General");
+    renderProgressGroup($("#progress-roadmaps"), visible, "road", "Sin asignar");
+  }
 
   function renderMaterials(visible) {
     var source = flt.showDone ? visible : visible.filter(function (t) { return !isDone(t); });
