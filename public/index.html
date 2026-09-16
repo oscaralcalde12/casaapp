@@ -63,6 +63,7 @@
   }
 
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   html { -webkit-text-size-adjust: 100%; }
   body {
     margin: 0; background: var(--ground); color: var(--ink);
@@ -114,7 +115,7 @@
   .filt.grow { flex: 1 1 160px; min-width: 140px; }
   .filt.road { flex: 0 0 auto; }
   .filt label { font-size: .64rem; text-transform: uppercase; letter-spacing: .08em; color: var(--faint); font-weight: 700; }
-  select, input[type=text], input[type=number], input[type=search], input[type=url] {
+  select, input[type=text], input[type=email], input[type=password], input[type=number], input[type=search], input[type=url] {
     font: inherit; font-size: .9rem; color: var(--ink); background: var(--paper);
     border: 1px solid var(--line-strong); border-radius: 9px; padding: 8px 10px; outline: none;
     transition: border-color .15s, box-shadow .15s; width: 100%;
@@ -537,6 +538,51 @@
   .progress-item-meta { margin-top: 5px; color: var(--faint); font-size: .65rem; }
   .progress-empty { padding: 35px 16px; text-align: center; color: var(--muted); font-size: .8rem; }
 
+  /* acceso */
+  .auth-screen {
+    min-height: 100svh; padding: clamp(18px, 5vw, 64px); display: grid; place-items: center;
+    background:
+      radial-gradient(circle at 12% 18%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 30%),
+      linear-gradient(135deg, var(--ground), var(--paper));
+  }
+  .auth-card {
+    width: min(920px, 100%); min-height: 540px; display: grid; grid-template-columns: 1.08fr .92fr;
+    overflow: hidden; border: 1px solid var(--line); border-radius: 24px; background: var(--surface); box-shadow: var(--shadow-lg);
+  }
+  .auth-intro {
+    position: relative; isolation: isolate; padding: clamp(32px, 6vw, 64px); display: flex; flex-direction: column; justify-content: space-between;
+    color: #fff; background: linear-gradient(145deg, #153D61, #245A8C 62%, #3976A8);
+  }
+  .auth-intro::after {
+    content: ""; position: absolute; inset: 0; z-index: -1; opacity: .2;
+    background: linear-gradient(rgba(255,255,255,.24) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.24) 1px, transparent 1px);
+    background-size: 38px 38px; mask-image: linear-gradient(to bottom right, transparent, #000);
+  }
+  .auth-brand { display: flex; align-items: center; gap: 13px; font: 700 1.05rem "Bricolage Grotesque", sans-serif; letter-spacing: .01em; }
+  .auth-mark { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 12px; background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.24); }
+  .auth-mark svg { width: 25px; height: 25px; }
+  .auth-copy h1 { max-width: 500px; font-size: clamp(2rem, 5vw, 3.5rem); line-height: .98; letter-spacing: -.045em; }
+  .auth-copy p { max-width: 440px; margin: 18px 0 0; color: rgba(255,255,255,.75); font-size: .94rem; }
+  .auth-db { display: flex; align-items: center; gap: 8px; color: rgba(255,255,255,.68); font-size: .72rem; }
+  .auth-db::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #7DD3A4; box-shadow: 0 0 0 4px rgba(125,211,164,.15); }
+  .auth-panel { padding: clamp(30px, 5vw, 56px); display: flex; flex-direction: column; justify-content: center; }
+  .auth-eyebrow { margin: 0 0 6px; color: var(--accent); font: 700 .7rem "Public Sans", sans-serif; letter-spacing: .12em; text-transform: uppercase; }
+  .auth-panel h2 { font-size: clamp(1.55rem, 3vw, 2rem); letter-spacing: -.025em; }
+  .auth-subtitle { margin: 8px 0 26px; color: var(--muted); font-size: .86rem; }
+  .auth-form { display: flex; flex-direction: column; gap: 15px; }
+  .auth-field { display: flex; flex-direction: column; gap: 7px; }
+  .auth-field label { color: var(--muted); font-size: .7rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .auth-field input { min-height: 46px; padding-inline: 13px; }
+  .auth-submit { min-height: 46px; margin-top: 4px; }
+  .auth-submit[disabled], .logout-btn[disabled] { cursor: wait; opacity: .65; }
+  .auth-error { min-height: 20px; margin: 0; color: var(--p-alta); font-size: .78rem; }
+  .auth-footnote { margin: 22px 0 0; padding-top: 18px; border-top: 1px solid var(--line); color: var(--faint); font-size: .7rem; }
+  .user-menu { display: flex; align-items: center; gap: 8px; padding: 4px 5px 4px 10px; border: 1px solid var(--line-strong); border-radius: 11px; background: var(--surface); }
+  .user-name { max-width: 120px; overflow: hidden; color: var(--muted); font-size: .72rem; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+  .logout-btn { width: 31px; height: 31px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 8px; background: var(--paper); color: var(--muted); cursor: pointer; }
+  .logout-btn:hover { color: var(--p-alta); background: var(--p-alta-bg); }
+  .logout-btn svg { width: 16px; height: 16px; }
+
   @media (max-width: 1080px) {
     .grid { grid-template-columns: 1fr; }
     .plot { height: 400px; }
@@ -586,13 +632,55 @@
     .timeline { --label-w: 180px; }
     .timeline-label { padding-inline: 11px; }
     .timeline-label strong { max-width: 154px; }
+    .auth-screen { padding: 0; place-items: stretch; }
+    .auth-card { min-height: 100svh; grid-template-columns: 1fr; border: 0; border-radius: 0; }
+    .auth-intro { min-height: 230px; padding: 28px 24px; }
+    .auth-copy h1 { margin-top: 34px; font-size: 2.25rem; }
+    .auth-copy p { margin-top: 12px; }
+    .auth-db { margin-top: 24px; }
+    .auth-panel { padding: 30px 24px 38px; justify-content: flex-start; }
+    .user-menu { order: 1; margin-left: auto; }
   }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; } }
 </style>
 </head>
 <body>
 
-<div class="wrap">
+<section class="auth-screen" id="auth-screen" aria-labelledby="auth-title">
+  <div class="auth-card">
+    <div class="auth-intro">
+      <div class="auth-brand">
+        <span class="auth-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg></span>
+        Casa Plan
+      </div>
+      <div class="auth-copy">
+        <h1>Tu obra, ordenada en un solo lugar.</h1>
+        <p>Planificá tareas, materiales, costos y fechas estimadas con acceso privado.</p>
+      </div>
+      <div class="auth-db">Datos sincronizados con Neon</div>
+    </div>
+    <div class="auth-panel">
+      <p class="auth-eyebrow">Acceso privado</p>
+      <h2 id="auth-title">Iniciar sesión</h2>
+      <p class="auth-subtitle">Ingresá tu correo y contraseña para ver el plano de obra.</p>
+      <form class="auth-form" id="auth-form">
+        <div class="auth-field">
+          <label for="auth-username">Correo electrónico</label>
+          <input type="email" id="auth-username" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="254" required>
+        </div>
+        <div class="auth-field">
+          <label for="auth-password">Contraseña</label>
+          <input type="password" id="auth-password" name="password" autocomplete="current-password" maxlength="512" required>
+        </div>
+        <p class="auth-error" id="auth-error" role="alert" aria-live="polite"></p>
+        <button class="btn auth-submit" id="auth-submit" type="submit">Ingresar</button>
+      </form>
+      <p class="auth-footnote">La sesión se guarda de forma segura en este dispositivo durante 7 días.</p>
+    </div>
+  </div>
+</section>
+
+<div class="wrap" id="app-shell" hidden>
   <header class="masthead">
     <div class="brand">
       <div class="mark" aria-hidden="true">
@@ -610,6 +698,12 @@
         <span>Instalar app</span>
       </button>
       <button class="theme-btn" id="theme-btn" type="button" aria-label="Cambiar tema" title="Tema"></button>
+      <div class="user-menu" title="Sesión activa">
+        <span class="user-name" id="user-name"></span>
+        <button class="logout-btn" id="logout-btn" type="button" aria-label="Cerrar sesión" title="Cerrar sesión">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/></svg>
+        </button>
+      </div>
       <div class="kpis">
         <div class="kpi"><div class="n mono" id="kpi-count">0</div><div class="l">Tareas</div></div>
         <div class="kpi"><div class="n mono" id="kpi-cost">$0</div><div class="l">Presupuesto</div></div>
@@ -995,6 +1089,62 @@
     });
   }
 
+  // ---------- acceso privado ----------
+  var authScreen = $("#auth-screen"), appShell = $("#app-shell"), authForm = $("#auth-form");
+  var authError = $("#auth-error"), authSubmit = $("#auth-submit"), logoutBtn = $("#logout-btn");
+  function setAuthError(message) { authError.textContent = message || ""; }
+  function showLogin(message) {
+    clearTimeout(saveTimer);
+    tasks = []; dirty = false; saving = false;
+    $("#overlay").classList.remove("on"); $("#lightbox").classList.remove("on");
+    appShell.hidden = true; authScreen.hidden = false;
+    setAuthError(message);
+    $("#auth-password").value = "";
+    setTimeout(function () { $("#auth-username").focus(); }, 30);
+  }
+  function showApp(user) {
+    $("#user-name").textContent = user && user.username ? user.username : "Usuario";
+    authScreen.hidden = true; appShell.hidden = false; setAuthError("");
+    boot();
+  }
+  async function authBoot() {
+    try {
+      var response = await fetch("/api/auth", { cache: "no-store" });
+      var data = await response.json().catch(function () { return {}; });
+      if (!response.ok || !data.authenticated) {
+        showLogin(response.status === 503 ? data.error : "");
+        return;
+      }
+      showApp(data.user);
+    } catch (error) {
+      showLogin("No se pudo comprobar la sesión. Revisá tu conexión.");
+    }
+  }
+  authForm.addEventListener("submit", async function (event) {
+    event.preventDefault(); setAuthError(""); authSubmit.disabled = true; authSubmit.textContent = "Ingresando…";
+    try {
+      var response = await fetch("/api/auth", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: $("#auth-username").value.trim(), password: $("#auth-password").value })
+      });
+      var data = await response.json().catch(function () { return {}; });
+      if (!response.ok || !data.authenticated) throw new Error(data.error || "No se pudo iniciar sesión");
+      $("#auth-password").value = ""; showApp(data.user);
+    } catch (error) {
+      setAuthError(error.message || "No se pudo iniciar sesión");
+      $("#auth-password").select();
+    } finally {
+      authSubmit.disabled = false; authSubmit.textContent = "Ingresar";
+    }
+  });
+  logoutBtn.addEventListener("click", async function () {
+    logoutBtn.disabled = true;
+    if (dirty) await flush();
+    try { await fetch("/api/auth", { method: "DELETE" }); } catch (error) {}
+    if (navigator.serviceWorker && navigator.serviceWorker.controller) navigator.serviceWorker.controller.postMessage({ type: "CLEAR_PRIVATE_DATA" });
+    logoutBtn.disabled = false; showLogin("Sesión cerrada correctamente.");
+  });
+
   function newId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 
   // ---------- persistencia: API Vercel + Neon ----------
@@ -1024,6 +1174,7 @@
       var response = await fetch("/api/tasks", {
         method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(tasks)
       });
+      if (response.status === 401) { saving = false; dirty = false; showLogin("La sesión venció. Ingresá de nuevo para continuar."); return; }
       if (!response.ok) throw new Error("save");
       saving = false; setStatus("saved"); if (dirty) flush();
     } catch (e) { saving = false; dirty = true; setStatus("error"); }
@@ -1032,6 +1183,7 @@
     setStatus("loading");
     try {
       var response = await fetch("/api/tasks");
+      if (response.status === 401) { showLogin("La sesión venció. Ingresá de nuevo para continuar."); return; }
       if (!response.ok) throw new Error("load");
       tasks = normalize(await response.json()); buildFilters(); render(); setStatus("saved");
     } catch (e) { buildFilters(); render(); setStatus("error"); }
@@ -1814,7 +1966,7 @@
 
   // el estado se cambia con el botón .stbtn, que ya es un <button> (teclado nativo)
 
-  boot();
+  authBoot();
 })();
 </script>
 </body>

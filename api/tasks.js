@@ -1,5 +1,6 @@
 import { asc } from "drizzle-orm";
 import { tasks as tasksTable } from "../db/schema.js";
+import { requireAuth } from "../lib/auth.js";
 import { database, ensureSeed, rowToTask } from "../lib/db.js";
 
 function normalizeCostItems(items, includeUrl = false) {
@@ -25,6 +26,7 @@ function normalizeCostItems(items, includeUrl = false) {
 
 export default async function handler(request, response) {
   try {
+    if (!requireAuth(request, response)) return;
     const db = database();
     await ensureSeed(db);
     if (request.method === "GET") {

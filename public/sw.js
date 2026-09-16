@@ -1,6 +1,5 @@
-const CACHE_VERSION = "casa-plan-v5";
+const CACHE_VERSION = "casa-plan-v6";
 const APP_CACHE = `${CACHE_VERSION}-app`;
-const DATA_CACHE = `${CACHE_VERSION}-data`;
 const APP_SHELL = [
   "/",
   "/manifest.webmanifest",
@@ -19,7 +18,7 @@ self.addEventListener("activate", (event) => {
     caches.keys()
       .then((keys) => Promise.all(
         keys
-          .filter((key) => key.startsWith("casa-plan-") && ![APP_CACHE, DATA_CACHE].includes(key))
+          .filter((key) => key.startsWith("casa-plan-") && key !== APP_CACHE)
           .map((key) => caches.delete(key))
       ))
       .then(() => self.clients.claim())
@@ -44,8 +43,8 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  if (url.pathname === "/api/tasks") {
-    event.respondWith(networkFirst(request, DATA_CACHE));
+  if (url.pathname.startsWith("/api/")) {
+    event.respondWith(fetch(request));
     return;
   }
 
@@ -59,5 +58,14 @@ self.addEventListener("fetch", (event) => {
       if (response.ok) caches.open(APP_CACHE).then((cache) => cache.put(request, response.clone()));
       return response;
     }))
+  );
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type !== "CLEAR_PRIVATE_DATA") return;
+  event.waitUntil(
+    caches.keys().then((keys) => Promise.all(
+      keys.filter((key) => key.startsWith("casa-plan-") && key !== APP_CACHE).map((key) => caches.delete(key))
+    ))
   );
 });

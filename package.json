@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "npx vercel dev",
     "build": "node scripts/validate.mjs",
-    "db:migrate": "node scripts/migrate.mjs"
+    "test": "node scripts/test-auth.mjs && node scripts/validate.mjs",
+    "db:migrate": "node scripts/migrate.mjs",
+    "auth:setup": "node scripts/create-auth-secrets.mjs"
   },
   "dependencies": {
     "@neon/config": "^1.1.0",
