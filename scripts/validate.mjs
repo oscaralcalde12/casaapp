@@ -11,6 +11,9 @@ const html = await readFile(new URL("../public/index.html", import.meta.url), "u
 if (!html.includes("Plano de Obra") || !html.includes("/api/tasks") || !html.includes("/api/auth") || !html.includes("auth-screen") || !html.includes("logout-btn") || !html.includes("m-start") || !html.includes("renderRoadmap") || !html.includes("renderProgress") || !html.includes("progress-view") || !html.includes("progress-sectors") || !html.includes("renderMaterials") || !html.includes("materials-view") || !html.includes("m-checklist-list") || !html.includes("m-tool-list") || !html.includes("mat-unit-cost") || !html.includes("materialQuantity") || !html.includes("/manifest.webmanifest") || !html.includes("serviceWorker.register")) {
   throw new Error("La interfaz no contiene la integración esperada.");
 }
+if (html.indexOf('id="fl-search"') > html.indexOf('id="fl-road"')) {
+  throw new Error("El buscador debe aparecer antes que los demás filtros.");
+}
 const manifest = JSON.parse(await readFile(new URL("../public/manifest.webmanifest", import.meta.url), "utf8"));
 if (manifest.display !== "standalone" || manifest.start_url !== "/" || !Array.isArray(manifest.icons) || manifest.icons.length < 3) {
   throw new Error("El manifiesto PWA no contiene la configuración esperada.");
