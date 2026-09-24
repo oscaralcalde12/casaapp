@@ -8,7 +8,7 @@ const required = [
 ];
 await Promise.all(required.map((file) => access(new URL(`../${file}`, import.meta.url))));
 const html = await readFile(new URL("../public/index.html", import.meta.url), "utf8");
-if (!html.includes("Plano de Obra") || !html.includes("/api/tasks") || !html.includes("/api/auth") || !html.includes("auth-screen") || !html.includes("logout-btn") || !html.includes("m-start") || !html.includes("renderRoadmap") || !html.includes("renderProgress") || !html.includes("progress-view") || !html.includes("progress-sectors") || !html.includes("renderMaterials") || !html.includes("materials-view") || !html.includes("m-checklist-list") || !html.includes("m-tool-list") || !html.includes("mat-unit-cost") || !html.includes("materialQuantity") || !html.includes("/manifest.webmanifest") || !html.includes("serviceWorker.register")) {
+if (!html.includes("Plano de Obra") || !html.includes("/api/tasks") || !html.includes("/api/auth") || !html.includes("auth-screen") || !html.includes("logout-btn") || !html.includes("m-start") || !html.includes("renderRoadmap") || !html.includes("timeline-thumb") || !html.includes("renderProgress") || !html.includes("progress-view") || !html.includes("progress-sectors") || !html.includes("renderMaterials") || !html.includes("materials-view") || !html.includes("m-checklist-list") || !html.includes("m-tool-list") || !html.includes("mat-unit-cost") || !html.includes("materialQuantity") || !html.includes("/manifest.webmanifest") || !html.includes("serviceWorker.register")) {
   throw new Error("La interfaz no contiene la integración esperada.");
 }
 if (html.indexOf('id="fl-search"') > html.indexOf('id="fl-road"')) {

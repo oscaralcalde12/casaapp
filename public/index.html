@@ -473,14 +473,18 @@
     background-image: repeating-linear-gradient(90deg, transparent 0, transparent calc(var(--week-w, 35px) - 1px), color-mix(in srgb, var(--line) 50%, transparent) var(--week-w, 35px));
   }
   .timeline-bar {
-    position: absolute; top: 11px; height: 49px; min-width: 118px; padding: 8px 11px 7px 14px; overflow: hidden;
+    position: absolute; top: 11px; height: 49px; min-width: 118px; padding: 7px 11px 7px 14px; overflow: hidden;
     border: 1px solid color-mix(in srgb, var(--bar-color) 30%, var(--line)); border-left: 4px solid var(--bar-color); border-radius: 10px;
     background: color-mix(in srgb, var(--bar-color) 11%, var(--surface)); color: var(--ink); cursor: pointer; box-shadow: 0 7px 16px -15px rgba(23,33,43,.8);
+    display: flex; align-items: center; gap: 8px; text-align: left;
     transition: transform .15s, box-shadow .15s;
   }
+  .timeline-bar.has-thumb { padding-left: 6px; }
   .timeline-bar:hover { transform: translateY(-2px); box-shadow: 0 13px 26px -18px rgba(23,33,43,.75); z-index: 3; }
+  .timeline-thumb { width: 35px; height: 35px; flex: 0 0 35px; border: 1px solid color-mix(in srgb, var(--bar-color) 22%, var(--line)); border-radius: 7px; object-fit: cover; background: var(--paper); }
+  .timeline-bar-copy { min-width: 0; overflow: hidden; }
   .timeline-bar strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .76rem; }
-  .timeline-bar span { display: block; margin-top: 2px; color: var(--muted); font: 500 .62rem "IBM Plex Mono", monospace; white-space: nowrap; }
+  .timeline-bar-copy > span { display: block; margin-top: 2px; overflow: hidden; color: var(--muted); font: 500 .62rem "IBM Plex Mono", monospace; text-overflow: ellipsis; white-space: nowrap; }
   .timeline-today { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--p-alta); z-index: 2; pointer-events: none; }
   .timeline-today::before { content: "Hoy"; position: absolute; top: 3px; left: 5px; color: var(--p-alta); font: 700 .6rem "Public Sans", sans-serif; }
   .road-date { color: var(--accent-ink); font-weight: 600; }
@@ -1796,15 +1800,18 @@
       var d = taskDates(t), left = daysBetween(rangeStart, d.start) * dayWidth;
       var width = Math.max(118, (daysBetween(d.start, d.end) + 1) * dayWidth);
       var dateLabel = dateShort(t.startDate || t.endDate) + (t.startDate && t.endDate && t.startDate !== t.endDate ? " → " + dateShort(t.endDate) : "");
+      var roadmapImage = t.imgActual || t.imgFuturo || "";
+      var thumbnail = roadmapImage ? '<img class="timeline-thumb" src="' + imgUrl(roadmapImage, 120) + '" alt="" loading="lazy" data-fid="' + fidAttr(roadmapImage) + '">' : '';
       return '<div class="timeline-row" data-id="' + esc(t.id) + '">' +
         '<div class="timeline-label"><strong title="' + esc(t.name) + '">' + esc(t.name) + '</strong><span>' + esc(t.sector) + ' · ' + STATUS_LABEL[t.status] + '</span></div>' +
         '<div class="timeline-track" style="width:' + trackWidth + 'px;--week-w:' + (dayWidth * 7).toFixed(1) + 'px">' +
           (todayLeft === null ? "" : '<span class="timeline-today" style="left:' + todayLeft.toFixed(1) + 'px"></span>') +
-          '<button class="timeline-bar" type="button" style="left:' + left.toFixed(1) + 'px;width:' + width.toFixed(1) + 'px;--bar-color:' + color[t.prio] + '" aria-label="Editar ' + esc(t.name) + '">' +
-            '<strong>' + esc(t.name) + '</strong><span>' + esc(dateLabel) + '</span></button>' +
+          '<button class="timeline-bar' + (roadmapImage ? ' has-thumb' : '') + '" type="button" style="left:' + left.toFixed(1) + 'px;width:' + width.toFixed(1) + 'px;--bar-color:' + color[t.prio] + '" aria-label="Editar ' + esc(t.name) + '">' +
+            thumbnail + '<span class="timeline-bar-copy"><strong>' + esc(t.name) + '</strong><span>' + esc(dateLabel) + '</span></span></button>' +
         '</div></div>';
     }).join("");
     $("#timeline").innerHTML = head + rows;
+    hydrateImgs($("#timeline"));
   }
 
   $("#timeline").addEventListener("click", function (e) {
